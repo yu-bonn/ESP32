@@ -1,0 +1,81 @@
+>>> %Run -c $EDITOR_CONTENT
+['0x62', '0x77']
+chip id is 0x55, BMP180 detected
+bmp coefficients: coefs=b'\x1b\xc6\xfb\xe6\xc6\x85\x80\xedd\xa69\xa8\x19s\x00$\x80\x00\xd1\xf6\t1'
+SCD41: no new data available
+raw output: ['0x5a', '0xa4', '0x0']
+raw output: ['0x9c', '0xd9', '0x0']
+data computation
+UT=23204, UP=321224
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.09 hPa
+1995
+SCD41: CO2: 1995 (ppm), temperature: 24.67 C, humidity: 61.82 %
+raw output: ['0x5a', '0xa2', '0x0']
+raw output: ['0x9c', '0xda', '0xa0']
+data computation
+UT=23202, UP=321237
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.13 hPa
+SCD41: no new data available
+raw output: ['0x5a', '0xa2', '0x0']
+raw output: ['0x9c', '0xd9', '0xa0']
+data computation
+UT=23202, UP=321229
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.1 hPa
+SCD41: no new data available
+raw output: ['0x5a', '0xa4', '0x0']
+raw output: ['0x9c', '0xd7', '0xc0']
+data computation
+UT=23204, UP=321214
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.05 hPa
+1981
+SCD41: CO2: 1981 (ppm), temperature: 24.76 C, humidity: 62.61 %
+raw output: ['0x5a', '0xa4', '0x0']
+raw output: ['0x9c', '0xd8', '0xc0']
+data computation
+UT=23204, UP=321222
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.08 hPa
+SCD41: no new data available
+raw output: ['0x5a', '0xa6', '0x0']
+raw output: ['0x9c', '0xd7', '0xa0']
+data computation
+UT=23206, UP=321213
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.11 hPa
+1960
+SCD41: CO2: 1960 (ppm), temperature: 24.67 C, humidity: 63.24 %
+raw output: ['0x5a', '0xa3', '0x0']
+raw output: ['0x9c', '0xd9', '0xc0']
+data computation
+UT=23203, UP=321230
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.1 hPa
+SCD41: no new data available
+raw output: ['0x5a', '0xa3', '0x0']
+raw output: ['0x9c', '0xd9', '0x80']
+data computation
+UT=23203, UP=321228
+AC1=7110, AC2=-1050, AC3=-14715, AC4=33005, AC5=25766, AC6=14760
+B1=6515, B2=36, MB=-32768, MC=-11786, MD=2353
+measured temperature: 24.7 
+measured air pressure: 1000.09 hPa
+15 seconds passed
+>>> 
