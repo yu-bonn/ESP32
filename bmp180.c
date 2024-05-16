@@ -60,10 +60,20 @@ static esp_err_t i2c_master_init(void)
 }
 
 
-//void bmp180_read_id(){}
+void bmp180_read_id(){
+    uint8_t bmp180_reg_chip_id = 0xd0;
+    TickType_t delay = pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS);
+    uint8_t chip_id = 0;
+    i2c_master_write_read_device(I2C_MASTER_NUM, BMP180_I2C_ADDR, bmp180_reg_chip_id, sizeof(bmp180_reg_chip_id), chip_id, 1, delay);
+    if(chip_id == 0x55){
+        printf("chip id is 0x55, BMP180 detected");
+    }else{
+        printf("NOT BMP180!");
+    }
+}
 
-void bmp180_read_coefficients(){
-uint8_t* bmp180_coef_reg_base = 0xAA;
+uint8_t* bmp180_read_coefficients(){
+    uint8_t* bmp180_coef_reg_base = 0xAA;
     int bmp180_coef_size = 22;
     uint8_t* coef = (uint8_t*)malloc(22); 
     TickType_t delay = pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS);
@@ -139,7 +149,7 @@ void compute(uint8_t* coef, uint8_t* raw_temp, uint8_t* raw_press){
     //unsigned longs here, check later
     uint32_t B4 = AC4 * (X3 + 32768) / (1 << 15);
     uint32_t B7 = (UP - B3) * (50000 >> 3);
-    int p;
+    int p = 0;
     if(B7 < 0x80000000){
         p = (B7 * 2) / B4;
     }else{
@@ -148,7 +158,7 @@ void compute(uint8_t* coef, uint8_t* raw_temp, uint8_t* raw_press){
     X1 = (p / 256) *(p / 256);
     X1 = (X1 * 3038) / (1 << 16);
     X2 = (-7357 * p) / (1 << 16);
-    p = p + (X1 + X2 + 3791) / 16;
+    p += (X1 + X2 + 3791) >> 4;
     printf("air pressure: %f hPa", (float)p / 100);
 }
 
@@ -157,14 +167,13 @@ void app_main(void){
     ESP_ERROR_CHECK(i2c_master_init());
     //ESP_LOGI(TAG, "I2C initialized successfully");
 
-    //bmp180_read_id();
-    uint8_t* coef = bmp180_read_coefficients();
-
+    bmp180_read_id();
+    
     //time_t start_time = time(NULL);
     //time_t current_time;
-
+    uint8_t* coef = bmp180_read_coefficients();
     while(1){
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        //vTaskDelay(1000 / portTICK_PERIOD_MS);
         uint8_t* raw_temp = bmp180_read_temp();
         uint8_t* raw_press = bmp180_read_pres();
         compute(coef, raw_temp, raw_press);
@@ -173,6 +182,8 @@ void app_main(void){
         /*if(current_time - start_time >= 15){
             break;
         }*/
+        free(raw_temp);
+        free(raw_press);
     }
     //this is now unreachable 
     ESP_ERROR_CHECK(i2c_driver_delete(I2C_MASTER_NUM));
