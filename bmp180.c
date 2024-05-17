@@ -30,14 +30,14 @@
 
 static const char *TAG = "i2c-simple-example";
 
-#define I2C_MASTER_SCL_IO           CONFIG_I2C_MASTER_SCL      /*!< GPIO number used for I2C master clock */
-#define I2C_MASTER_SDA_IO           CONFIG_I2C_MASTER_SDA      /*!< GPIO number used for I2C master data  */
+#define I2C_MASTER_SCL_IO           33      /*!< GPIO number used for I2C master clock */
+#define I2C_MASTER_SDA_IO           32      /*!< GPIO number used for I2C master data  */
 #define I2C_MASTER_NUM              0                          /*!< I2C master i2c port number, the number of i2c peripheral interfaces available will depend on the chip */
 #define I2C_MASTER_FREQ_HZ          400000                     /*!< I2C master clock frequency */
 #define I2C_MASTER_TX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_RX_BUF_DISABLE   0                          /*!< I2C master doesn't need buffer */
 #define I2C_MASTER_TIMEOUT_MS       1000
-
+i2c_port_t i2c_port = I2C_NUM_0;
 #define BMP180_I2C_ADDR                 0x77
 
 
@@ -47,8 +47,8 @@ static esp_err_t i2c_master_init(void)
 
     i2c_config_t conf = {
         .mode = I2C_MODE_MASTER,
-        .sda_io_num = I2C_MASTER_SDA_IO,
-        .scl_io_num = I2C_MASTER_SCL_IO,
+        .sda_io_num = 32,
+        .scl_io_num = 33,
         .sda_pullup_en = GPIO_PULLUP_ENABLE,
         .scl_pullup_en = GPIO_PULLUP_ENABLE,
         .master.clk_speed = I2C_MASTER_FREQ_HZ,
@@ -56,15 +56,15 @@ static esp_err_t i2c_master_init(void)
 
     i2c_param_config(i2c_master_port, &conf);
 
-    return i2c_driver_install(i2c_master_port, conf.mode, I2C_MASTER_RX_BUF_DISABLE, I2C_MASTER_TX_BUF_DISABLE, 0);
+    return i2c_driver_install(i2c_master_port, conf.mode, 0, 0, 0);
 }
 
 
 void bmp180_read_id(){
-    uint8_t bmp180_reg_chip_id = 0xd0;
+    uint8_t bmp180_reg_chip_id = 0xD0;
     TickType_t delay = pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS);
     uint8_t chip_id = 0;
-    i2c_master_write_read_device(I2C_MASTER_NUM, BMP180_I2C_ADDR, bmp180_reg_chip_id, sizeof(bmp180_reg_chip_id), chip_id, 1, delay);
+    i2c_master_write_read_device(i2c_port, BMP180_I2C_ADDR, &bmp180_reg_chip_id, 1, &chip_id, 1, delay);
     if(chip_id == 0x55){
         printf("chip id is 0x55, BMP180 detected");
     }else{
@@ -73,36 +73,36 @@ void bmp180_read_id(){
 }
 
 uint8_t* bmp180_read_coefficients(){
-    uint8_t* bmp180_coef_reg_base = 0xAA;
-    int bmp180_coef_size = 22;
+    uint8_t bmp180_coef_reg_base = 0xAA;
+    uint8_t bmp180_coef_size = 22;
     uint8_t* coef = (uint8_t*)malloc(22); 
     TickType_t delay = pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS);
-    i2c_master_write_read_device(I2C_MASTER_NUM, BMP180_I2C_ADDR, bmp180_coef_reg_base, sizeof(bmp180_coef_reg_base), coef, bmp180_coef_size, delay);
-    printf("bmp coefficients: %s\n", coef);
+    i2c_master_write_read_device(i2c_port, BMP180_I2C_ADDR, &bmp180_coef_reg_base, 1, coef, bmp180_coef_size, delay);
+    //printf("bmp coefficients: %s\n", coef);
     return coef;
 }
 
-uint8_t* bmp180_measurement(uint16_t command, int ms){
+uint8_t* bmp180_measurement(uint8_t* command, int ms){
     uint8_t bmp180_reg_out_msb = 0xF6;
     uint8_t* out = (uint8_t*)malloc(3);
 
     TickType_t delay = pdMS_TO_TICKS(I2C_MASTER_TIMEOUT_MS);
-    i2c_master_write_to_device(I2C_MASTER_NUM, BMP180_I2C_ADDR, command, sizeof(command), delay);
+    i2c_master_write_to_device(i2c_port, BMP180_I2C_ADDR, command, 2, delay);
     TickType_t delay_ms = pdMS_TO_TICKS(ms);
     vTaskDelay(delay_ms);
 
-    i2c_master_write_read_device(I2C_MASTER_NUM, BMP180_I2C_ADDR, bmp180_reg_out_msb, sizeof(bmp180_reg_out_msb), out, 3, delay);
-    printf("raw output: %s\n", out);
+    i2c_master_write_read_device(i2c_port, BMP180_I2C_ADDR, &bmp180_reg_out_msb, 1, out, 3, delay);
+    //printf("raw output: %s\n", out);
     return out;
 }
 
 uint8_t* bmp180_read_temp(){
-    uint16_t bmp180_reg_out_msb = {0xF4, 0x2E};
+    uint16_t bmp180_reg_out_msb[] = {0xF4, 0x2E};
     return bmp180_measurement(bmp180_reg_out_msb, 5);
 }
 
 uint8_t* bmp180_read_pres(){
-    uint16_t bmp180_cmd_meas_temp = {0xF4, 0xF4};
+    uint16_t bmp180_cmd_meas_temp[] = {0xF4, 0xF4};
     return bmp180_measurement(bmp180_cmd_meas_temp, 26);
 }
 
@@ -149,7 +149,7 @@ void compute(uint8_t* coef, uint8_t* raw_temp, uint8_t* raw_press){
     //unsigned longs here, check later
     uint32_t B4 = AC4 * (X3 + 32768) / (1 << 15);
     uint32_t B7 = (UP - B3) * (50000 >> 3);
-    int p = 0;
+    int p;
     if(B7 < 0x80000000){
         p = (B7 * 2) / B4;
     }else{
@@ -158,22 +158,21 @@ void compute(uint8_t* coef, uint8_t* raw_temp, uint8_t* raw_press){
     X1 = (p / 256) *(p / 256);
     X1 = (X1 * 3038) / (1 << 16);
     X2 = (-7357 * p) / (1 << 16);
-    p += (X1 + X2 + 3791) >> 4;
+    p = p + (X1 + X2 + 3791) / 16;
     printf("air pressure: %f hPa", (float)p / 100);
 }
 
-void app_main(void){
+void app_main() {
     printf("Entering app_main()\n");
     ESP_ERROR_CHECK(i2c_master_init());
     //ESP_LOGI(TAG, "I2C initialized successfully");
-
     bmp180_read_id();
     
     //time_t start_time = time(NULL);
     //time_t current_time;
     uint8_t* coef = bmp180_read_coefficients();
     while(1){
-        //vTaskDelay(1000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         uint8_t* raw_temp = bmp180_read_temp();
         uint8_t* raw_press = bmp180_read_pres();
         compute(coef, raw_temp, raw_press);
