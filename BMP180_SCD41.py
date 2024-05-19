@@ -1,6 +1,67 @@
 from machine import Pin, I2C
 import time
 import struct
+import asyncio
+import random
+from umqtt.robust import MQTTClient
+import network
+import collections
+
+work_queue : collections.deque[int] = collections.deque((), 16)
+work_to_do : asyncio.Event = asyncio.Event()
+work_to_do.clear()
+
+#MQTTの設定
+def net_setup() -> MQTTClient:
+    wlan = network.WLAN(network.STA_IF)
+    wlan.active(True)
+    print(f"MAC: {wlan.config('mac').hex()}")
+    res = wlan.connect('JAISTALL',"")
+    print(f"connect result: {res}")
+
+    mqtt_client:MQTTClient = MQTTClient(client_id = "test", server = "150.65.230.59")
+    res = mqtt_client.connect()
+    print(f"connect result: {res}")
+    return mqtt_client
+
+async def producer_scd41(co2:str, temp_num:str, h_num:str):
+    num = 1
+    while True:
+        print("producer SCD41: queing work!")
+        send_data = [num, co2, temp_num, h_num]
+        work_queue.append(send_data)
+        work_to_do.set()
+        await asyncio.sleep(0.1)
+
+async def producer_bmp180(temp_num:str, air_pressure):
+    num = 2
+    while True:
+        print("producer BMP180: queing work!")
+        send_data = [num, temp_num, air_pressure]
+        work_queue.append(send_data)
+        work_to_do.set()
+        await asyncio.sleep(0.1)
+        
+def post_scd41(data:int):
+    client.publish("i483/sencer/2410139/SCD41", f"{data}".encode())
+
+def post_bmp180(data:int):
+    client.publish("i483/sencer/2410139/BMP180", f"{data}".encode())
+
+async def consumer():
+    while True:
+        await work_to_do.wait()
+        work:int = work_queue.popleft()
+        print(f"consumer: consuming {work=}, items in queue: {len(work_queue)}")
+        #stop ourselves from blocking in get
+        if len(work_queue) == 0:
+            work_to_do.clear()
+        if work[0] == 1:
+            work.pop(0)
+            post_scd41(work)
+        elif work[0] == 2:
+            work.pop(0)
+            post_bmp180(work)
 
 #I2Cの設定
 bus = I2C(0, scl=Pin(33, pull=Pin.PULL_UP), sda=Pin(32, pull=Pin.PULL_UP), freq=400000, timeout=1000000)
@@ -52,12 +113,12 @@ def scd41_parse_data(data):
     co2 = int.from_bytes(data[:2], 'big')
     temp= int.from_bytes(data[3:5], 'big')
     rh = int.from_bytes(data[6:8], 'big')
-    print(co2)
     
     temp_num = -45 + 175 * temp / ((2**16)-1)
     h_num =100 * rh / ((2**16)-1)
-    
+
     print(f"SCD41: CO2: {co2} (ppm), temperature: {temp_num:.2f} C, humidity: {h_num:.2f} %")
+    producer_scd41(co2, temp_num, h_num)
 
 CRC8_POLYNOMIAL = 0x31
 CRC8_INT = 0xff
@@ -199,18 +260,23 @@ def compute(coef, raw_temp, raw_press):
     p = p + (X1 + X2 + 3791) // 16
     
     print(f"measured air pressure: {p/100} hPa")
+    producer_bmp180(T /10, p/100)
 
+################################################
+
+client:MQTTClient = net_setup()
+asyncio.run(consumer())
+scd41_PowerOn()
 bmp180_read_chip_id(bus)
 coef = bmp180_read_coefficients(bus)
 
-scd41_PowerOn()
-start_time = time.time()
 while True:
-    time.sleep(1)
+    print("SCD41 start\n")
     scd41_poll()
+    print("BMP180 start\n")
     raw_temp = bmp180_read_temperature(bus)
     raw_press = bmp180_read_pressure(bus)
     compute(coef, raw_temp, raw_press)
-    if time.time() -start_time >= 15:
-        break
-print("15 seconds passed")
+    time.sleep(15)
+    print("15second\n")
+    
