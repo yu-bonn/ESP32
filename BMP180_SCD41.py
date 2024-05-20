@@ -19,7 +19,7 @@ def net_setup() -> MQTTClient:
     res = wlan.connect('JAISTALL',"")
     print(f"connect result: {res}")
 
-    mqtt_client:MQTTClient = MQTTClient(client_id = "test", server = "150.65.230.59")
+    mqtt_client:MQTTClient = MQTTClient(client_id = "2410139", server = "150.65.230.59")
     res = mqtt_client.connect()
     print(f"connect result: {res}")
     return mqtt_client
@@ -42,11 +42,25 @@ async def producer_bmp180(temp_num:str, air_pressure):
         work_to_do.set()
         await asyncio.sleep(0.1)
         
-def post_scd41(data:int):
-    client.publish("i483/sencer/2410139/SCD41", f"{data}".encode())
+def post_scd41_co2(data:int):
+    client.publish("i483/sencer/2410139/SCD41/co2", f"{data}".encode())
+    print("Publish SCD41_CO2")
 
-def post_bmp180(data:int):
-    client.publish("i483/sencer/2410139/BMP180", f"{data}".encode())
+def post_scd41_temp(data:int):
+    client.publish("i483/sencer/2410139/SCD41/temp", f"{data}".encode())
+    print("Publish SCD41_temp")
+
+def post_scd41_h(data:int):
+    client.publish("i483/sencer/2410139/SCD41/h", f"{data}".encode())
+    print("Publish SCD41_h")
+
+def post_bmp180_temp(data:int):
+    client.publish("i483/sencer/2410139/BMP180/temp", f"{data}".encode())
+    print("Publish BMP180_temp")
+
+def post_bmp180_pressure(data:int):
+    client.publish("i483/sencer/2410139/BMP180/pressure", f"{data}".encode())
+    print("Publish BMP180_pressure")
 
 async def consumer():
     while True:
@@ -58,10 +72,13 @@ async def consumer():
             work_to_do.clear()
         if work[0] == 1:
             work.pop(0)
-            post_scd41(work)
+            post_scd41_co2(work[0])
+            post_scd41_temp(work[1])
+            post_scd41_h(work[2])
         elif work[0] == 2:
             work.pop(0)
-            post_bmp180(work)
+            post_bmp180_temp(work[0])
+            post_bmp180_pressure(work[1])
 
 #I2Cの設定
 bus = I2C(0, scl=Pin(33, pull=Pin.PULL_UP), sda=Pin(32, pull=Pin.PULL_UP), freq=400000, timeout=1000000)
